@@ -1,69 +1,90 @@
-import React, { useRef, useState } from 'react';
-import { StyleSheet, View, Text, Button } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
-import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useEffect, useState, StrictMode } from "react";
+import { StyleSheet, View, Text, Button } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
-
-export default function App() {
-  const [state, setState] = useState({});
-  const renderCount = ++(useRef(0).current);
-
-  return <GestureHandlerRootView style={{ flex: 1 }}>
-    <View style={styles.container}>
-      <Button title={`Force rerender (this is render ${renderCount})`} onPress={() => setState({})} />
-
-      <Text>Strict draggable</Text>
-      <React.StrictMode>
-        <View style={{ flex: 1, alignSelf: 'stretch' }}>
-          <DragSquare/>
-        </View>
-      </React.StrictMode>
-
-      <Text>Non-strict draggable</Text>
-      <View style={{ flex: 1, alignSelf: 'stretch' }}>
-        <DragSquare/>
-      </View>
-    </View>
-  </GestureHandlerRootView>
+export default function Demo() {
+  return (
+    <StrictComparison title="Strict Mode vs Non-Strict Mode">
+      <App />
+    </StrictComparison>
+  );
 }
 
-function DragSquare() {
-  const x = useSharedValue(0);
-  const y = useSharedValue(0);
+function App() {
+  const [hide, setHide] = useState(true);
 
-  const style = useAnimatedStyle(
-    () => ({ left: x.value, top: y.value }),
-    [x, y]
-  );
-
-  const pan = Gesture.Pan().onUpdate((e) => {
-    x.value = e.translationX;
-    y.value = e.translationY;
-  });
+  useEffect(() => {
+    const timer = setTimeout(() => setHide(false), 200);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
-    <GestureDetector gesture={pan}>
-      <Animated.View
-        style={[
-          {
-            height: 100,
-            width: 100,
-            backgroundColor: 'red',
-            borderRadius: 5,
-            position: 'absolute',
-          },
-          style,
-        ]}
+    <View style={styles.container}>
+      <Button
+        title={hide ? "Show" : "Hide"}
+        onPress={() => setHide((prev) => !prev)}
       />
-    </GestureDetector>
+
+      {hide ? null : (
+        <>
+          <Text>Entering</Text>
+          <Animated.View entering={FadeIn}>
+            <Square />
+          </Animated.View>
+
+          <Text>Entering and exiting</Text>
+          <Animated.View entering={FadeIn} exiting={FadeOut}>
+            <Square />
+          </Animated.View>
+
+          <Text>Exiting</Text>
+          <Animated.View exiting={FadeOut}>
+            <Square />
+          </Animated.View>
+        </>
+      )}
+    </View>
+  );
+}
+
+function StrictComparison({ children, title }) {
+  return (
+    <View style={{ gap: 8, alignItems: "center", flex: 1 }}>
+      <Text style={{ fontSize: 20, alignSelf: "center" }}>{title}</Text>
+
+      <View style={{ flex: 1, flexDirection: "row", gap: 20 }}>
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <Text>Strict mode</Text>
+          <StrictMode>{children}</StrictMode>
+        </View>
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <Text>Non-strict</Text>
+          {children}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function Square() {
+  return (
+    <View
+      style={{
+        width: 50,
+        height: 50,
+        borderRadius: 10,
+        backgroundColor: "red",
+      }}
+    />
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: 20,
+    width: 200,
+    backgroundColor: "#fff",
+    alignItems: "center",
   },
 });
